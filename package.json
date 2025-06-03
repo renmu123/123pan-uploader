@@ -1,0 +1,32 @@
+{
+  "name": "123pan-uploader",
+  "version": "0.1.0",
+  "description": "123pan上传工具",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "typings": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "dev": "tsc -w",
+    "build": "pnpm run typecheck && tsc",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "release": "pnpm run build && npm publish --access=public"
+  },
+  "keywords": [
+    "123pan",
+    "uploader",
+    "123pan上传工具"
+  ],
+  "author": "renmu123",
+  "license": "MIT",
+  "dependencies": {
+    "p-queue": "^8.1.0",
+    "tiny-typed-emitter": "^2.1.0",
+    "axios": "^1.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.15.18",
+    "typescript": "^5.8.3"
+  }
+}

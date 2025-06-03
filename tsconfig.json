@@ -1,0 +1,23 @@
+{
+  "compilerOptions": {
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "baseUrl": ".",
+    "inlineSourceMap": false,
+    "inlineSources": false,
+    "module": "node16",
+    "target": "es2022",
+    "downlevelIteration": true,
+    "allowJs": false,
+    "noImplicitAny": false,
+    "moduleResolution": "node16",
+    "importHelpers": true,
+    "lib": ["es5", "scripthost", "es2015", "es2020", "ESNext"],
+    "noEmit": false,
+    "allowSyntheticDefaultImports": true,
+    "emitDecoratorMetadata": false,
+    "experimentalDecorators": true,
+    "declaration": true
+  },
+  "include": ["src/**/*.ts", "src/**/*"]
+}
