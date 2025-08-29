@@ -27,6 +27,10 @@ yarn add 123pan-uploader
 
 ## 快速开始
 
+### 获取 123 网盘访问令牌
+
+要使用此上传器，您需要先获取 123 网盘的访问令牌。请参考[123 网盘开放平台文档](https://www.123pan.com/developer)了解如何获取令牌。
+
 ### 获取 access_token
 
 ```typescript
@@ -208,10 +212,6 @@ progress 事件的 event 字段可能的值：
 - `uploading`: 上传分片阶段
 - `merging`: 服务器合并分片阶段
 - `complete`: 上传完成
-
-### 获取 123 网盘访问令牌
-
-要使用此上传器，您需要先获取 123 网盘的访问令牌。请参考[123 网盘开放平台文档](https://www.123pan.com/developer)了解如何获取令牌。
 
 ## 原理说明
 
