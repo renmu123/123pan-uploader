@@ -1,54 +1,50 @@
-# 123 网盘上传器 (123pan-uploader)
+# 123 网盘上传器
 
 一个基于 TypeScript 实现的 123 网盘文件上传工具，支持大文件分片上传、断点续传、进度监控等功能。
 
 ## 特性
 
 - ✨ 大文件分片上传
-- 🚀 多分片并发上传
 - 📊 详细的上传进度监控
 - 🔄 断点续传支持
 - ⏸️ 暂停/恢复上传功能
-- 🛡️ MD5 完整性校验
-- 📡 自动轮询文件合并状态
 
 ## 安装
 
 ```bash
 # 使用npm
-npm install 123pan-uploader
+npm install pan123-uploader
 
 # 使用pnpm
-pnpm add 123pan-uploader
+pnpm add pan123-uploader
 
 # 使用yarn
-yarn add 123pan-uploader
+yarn add pan123-uploader
 ```
 
 ## 快速开始
 
 ### 获取 123 网盘访问令牌
 
-要使用此上传器，您需要先获取 123 网盘的访问令牌。请参考[123 网盘开放平台文档](https://www.123pan.com/developer)了解如何获取令牌。
+请参考[123 网盘开放平台文档](https://www.123pan.com/developer)了解如何获取令牌。
 
 ### 获取 access_token
 
 ```typescript
-import { getAccessToken } from "123pan-uploader";
+import { getAccessToken } from "pan123-uploader";
 
 const clientId = "xxxx";
 const clientSecret = "xxx";
 const res = await getAccessToken(clientId, clientSecret);
-// 过期时间约为一个月
+// 过期时间约为90天
 const accessToken = res.data.accessToken;
 ```
 
 ### 创建文件夹
 
 ```typescript
-import { getAccessToken, Client } from "123pan-uploader";
+import { getAccessToken, Client } from "pan123-uploader";
 const res = await getAccessToken();
-// 过期时间约为一个月
 const accessToken = res.data.accessToken;
 
 const client = new Client(accessToken);
@@ -63,7 +59,7 @@ client.mkdirRecursive("/录播/测试");
 ### 基础用法
 
 ```typescript
-import { Uploader } from "123pan-uploader";
+import { Uploader } from "pan123-uploader";
 
 // 创建上传实例
 const uploader = new Uploader(
@@ -103,7 +99,7 @@ uploader
 ### 高级用法
 
 ```typescript
-import { Uploader } from "123pan-uploader";
+import { Uploader } from "pan123-uploader";
 
 // 创建带有自定义选项的上传实例
 const uploader = new Uploader(

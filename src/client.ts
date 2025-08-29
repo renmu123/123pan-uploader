@@ -1,6 +1,17 @@
 import axios, { AxiosInstance } from "axios";
 
-export async function getAccessToken(clientID: string, clientSecret: string) {
+export async function getAccessToken(
+  clientID: string,
+  clientSecret: string
+): Promise<{
+  code: number;
+  message: string;
+  data: {
+    accessToken: string;
+    expiredAt: string;
+  } | null;
+  "x-traceID": string;
+}> {
   const response = await axios.post(
     "https://open-api.123pan.com/api/v1/access_token",
     {

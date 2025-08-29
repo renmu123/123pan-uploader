@@ -302,7 +302,7 @@ export class Uploader {
       );
 
       const response = await this.request.post("/upload/v1/file/create", {
-        parentFileID: this.parentFileID,
+        parentFileID: parentFileID ?? this.parentFileID,
         filename: this.filename,
         size: this.size,
         etag,
