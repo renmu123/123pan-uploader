@@ -1,7 +1,7 @@
 {
-  "name": "123pan-uploader",
+  "name": "pan123-uploader",
   "version": "0.1.0",
-  "description": "123pan上传工具",
+  "description": "123网盘上传工具",
   "main": "dist/index.js",
   "module": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -14,7 +14,7 @@
     "release": "pnpm run build && npm publish --access=public"
   },
   "keywords": [
-    "123pan",
+    "123网盘",
     "uploader",
     "123pan上传工具"
   ],
