@@ -448,7 +448,7 @@ export class Uploader {
   private async uploadChunk(
     task: UploadChunkTask,
     retryCount = 0
-  ): Promise<{ partNumber: number; etag: string } | undefined> {
+  ): Promise<{ partNumber: number } | undefined> {
     const { filePath, start, chunkSize, chunk } = task;
     const partNumber = chunk + 1;
 
@@ -457,9 +457,6 @@ export class Uploader {
     try {
       // 读取分片数据
       const fileData = await this.readChunk(filePath, start, chunkSize);
-
-      // 计算分片MD5
-      const etag = this.calculateMd5(fileData);
 
       // 获取上传URL（每个分片可能需要单独获取）
       const { presignedURL } = await this.getChunkUploadUrl(
@@ -493,7 +490,7 @@ export class Uploader {
         signal: task.controller.signal,
       });
 
-      return { partNumber, etag };
+      return { partNumber };
     } catch (error) {
       if (axios.isCancel(error)) {
         this.chunkTasks[partNumber].status = "abort";
