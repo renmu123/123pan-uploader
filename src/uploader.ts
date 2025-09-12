@@ -1,10 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
-import crypto from "node:crypto";
 
 import { TypedEmitter } from "tiny-typed-emitter";
 import PQueue from "p-queue";
 import axios, { AxiosInstance } from "axios";
+import { md5File } from "./utils.js";
 
 // 上传器事件接口
 interface UploaderEvents {
@@ -170,15 +170,6 @@ export class Uploader {
   }
 
   /**
-   * 计算文件MD5
-   * @param buffer 文件缓冲区
-   * @returns MD5哈希值
-   */
-  private calculateMd5(buffer: Buffer): string {
-    return crypto.createHash("md5").update(buffer).digest("hex");
-  }
-
-  /**
    * 开始上传文件
    * @returns 上传结果
    */
@@ -297,9 +288,7 @@ export class Uploader {
 
     try {
       // 计算文件MD5
-      const etag = this.calculateMd5(
-        await this.readChunk(this.filePath, 0, this.size)
-      );
+      const etag = await md5File(this.filePath);
 
       const response = await this.request.post("/upload/v1/file/create", {
         parentFileID: parentFileID ?? this.parentFileID,
