@@ -203,6 +203,9 @@ export class Uploader {
         this.emitter.emit("completed", completedInfo);
         this.status = "completed";
 
+        // 文件复用情况下也要清理资源
+        this.cleanupAllResources();
+
         return completedInfo;
       }
 
@@ -256,6 +259,9 @@ export class Uploader {
 
       this.emitter.emit("completed", completedInfo);
       this.status = "completed";
+
+      // 上传完成后清理所有资源
+      this.cleanupAllResources();
 
       return completedInfo;
     } catch (error) {
@@ -442,9 +448,10 @@ export class Uploader {
 
     this.chunkTasks[partNumber].status = "running";
 
+    let fileData: Buffer | null = null;
     try {
       // 读取分片数据
-      const fileData = await this.readChunk(filePath, start, chunkSize);
+      fileData = await this.readChunk(filePath, start, chunkSize);
 
       // 获取上传URL（每个分片可能需要单独获取）
       const { presignedURL } = await this.getChunkUploadUrl(
@@ -495,6 +502,12 @@ export class Uploader {
 
       this.chunkTasks[partNumber].status = "error";
       throw error;
+    } finally {
+      // 确保在任何情况下都释放内存
+      fileData = null;
+      if (global.gc) {
+        global.gc();
+      }
     }
   }
 
@@ -707,5 +720,21 @@ export class Uploader {
     Object.values(this.chunkTasks).forEach(task => {
       task.controller.abort();
     });
+    this.cleanupAllResources();
+  }
+
+  /**
+   * 清理所有资源
+   */
+  private cleanupAllResources(): void {
+    // 清理任务数据
+    this.chunkTasks = {};
+    this.progress = {};
+    // 清理队列
+    this.queue.clear();
+    // 触发垃圾回收
+    if (global.gc) {
+      global.gc();
+    }
   }
 }
