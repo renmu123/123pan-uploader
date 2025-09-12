@@ -5,7 +5,7 @@ import { URL } from "node:url";
 
 import { TypedEmitter } from "tiny-typed-emitter";
 import PQueue from "p-queue";
-import axios, { AxiosInstance } from "axios";
+import { HttpClient } from "./http.js";
 import { md5File } from "./utils.js";
 
 // 上传器事件接口
@@ -66,7 +66,7 @@ export class Uploader {
     pollInterval: number;
     pollMaxTimes: number;
   };
-  private request: AxiosInstance;
+  private request: HttpClient;
   private chunkSize: number = 4 * 1024 * 1024;
 
   // 事件监听器
@@ -135,7 +135,7 @@ export class Uploader {
     this.off = this.emitter.off.bind(this.emitter);
 
     // 创建请求实例
-    this.request = axios.create({
+    this.request = HttpClient.create({
       baseURL: this.options.apiBaseUrl,
       headers: {
         Authorization: `Bearer ${this.token}`,
@@ -206,7 +206,7 @@ export class Uploader {
         this.status = "completed";
 
         // 文件复用情况下也要清理资源
-        this.cleanupAllResources();
+        // this.cleanupAllResources();
 
         return completedInfo;
       }
@@ -263,7 +263,7 @@ export class Uploader {
       this.status = "completed";
 
       // 上传完成后清理所有资源
-      this.cleanupAllResources();
+      // this.cleanupAllResources();
 
       return completedInfo;
     } catch (error) {
@@ -581,6 +581,8 @@ export class Uploader {
 
       // 监听文件流的进度
       fileStream.on("data", (chunk: Buffer) => {
+        if (this.status === "cancel") return;
+
         uploaded += chunk.length;
         this.progress[partNumber] = uploaded;
 
@@ -775,7 +777,7 @@ export class Uploader {
     Object.values(this.chunkTasks).forEach(task => {
       task.controller.abort();
     });
-    this.cleanupAllResources();
+    // this.cleanupAllResources();
   }
 
   /**

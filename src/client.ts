@@ -1,4 +1,4 @@
-import axios, { AxiosInstance } from "axios";
+import { HttpClient, post } from "./http.js";
 
 export async function getAccessToken(
   clientID: string,
@@ -12,7 +12,7 @@ export async function getAccessToken(
   } | null;
   "x-traceID": string;
 }> {
-  const response = await axios.post(
+  const response = await post(
     "https://open-api.123pan.com/api/v1/access_token",
     {
       clientID,
@@ -30,10 +30,10 @@ export async function getAccessToken(
 
 export class Client {
   private accessToken: string;
-  private request: AxiosInstance;
+  private request: HttpClient;
   constructor(accessToken: string) {
     this.accessToken = accessToken;
-    this.request = axios.create({
+    this.request = HttpClient.create({
       baseURL: "https://open-api.123pan.com",
       headers: {
         Platform: "open_platform",
@@ -173,6 +173,59 @@ export class Client {
     const response = await this.request.get("/api/v2/file/list", {
       params: options,
     });
+    return response.data;
+  }
+
+  /**
+   * 获取用户信息
+   */
+  async getUserInfo(): Promise<{
+    /** 用户账号ID */
+    uid: number;
+    /** 用户昵称 */
+    nickname: string;
+    /** 用户头像URL */
+    headImage: string;
+    /** 用户手机号码 */
+    passport: string;
+    /** 用户邮箱 */
+    mail: string;
+    /** 已用存储空间（字节） */
+    spaceUsed: number;
+    /** 永久存储空间（字节） */
+    spacePermanent: number;
+    /** 临时存储空间（字节） */
+    spaceTemp: number;
+    /** 临时空间到期日 */
+    spaceTempExpr: string;
+    /** 是否为VIP会员 */
+    vip: boolean;
+    /** 剩余直链流量 */
+    directTraffic: number;
+    /** 直链链接是否隐藏UID */
+    isHideUID: boolean;
+    /** HTTPS数量 */
+    httpsCount: number;
+    /** VIP信息（非VIP用户为null） */
+    vipInfo: {
+      /** VIP等级（1-VIP, 2-SVIP, 3-长期VIP） */
+      vipLevel: number;
+      /** VIP级别名称 */
+      vipLabel: string;
+      /** VIP开始时间 */
+      startTime: string;
+      /** VIP结束时间 */
+      endTime: string;
+    } | null;
+    /** 开发者权益信息 */
+    developerInfo: {
+      /** 开发者权益开始时间 */
+      startTime: string;
+      /** 开发者权益结束时间 */
+      endTime: string;
+    } | null;
+  }> {
+    const response = await this.request.get("/api/v1/user/info");
     return response.data;
   }
 }
