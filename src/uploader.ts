@@ -1,5 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
+import https from "node:https";
+import { URL } from "node:url";
 
 import { TypedEmitter } from "tiny-typed-emitter";
 import PQueue from "p-queue";
@@ -448,46 +450,28 @@ export class Uploader {
 
     this.chunkTasks[partNumber].status = "running";
 
-    let fileData: Buffer | null = null;
     try {
-      // 读取分片数据
-      fileData = await this.readChunk(filePath, start, chunkSize);
-
       // 获取上传URL（每个分片可能需要单独获取）
       const { presignedURL } = await this.getChunkUploadUrl(
         task.uploadId,
         partNumber
       );
 
-      // 上传分片
-      await axios.put(presignedURL, fileData, {
-        headers: {
-          "Content-Type": "application/octet-stream",
-        },
-        onUploadProgress: (progressEvent: any) => {
-          this.progress[partNumber] = progressEvent.loaded;
-          const totalLoaded = Object.values(this.progress).reduce(
-            (a, b) => a + b,
-            0
-          );
+      // 创建文件流
+      const fileStream = this.createChunkStream(filePath, start, chunkSize);
 
-          this.emitter.emit("progress", {
-            event: "uploading",
-            progress: totalLoaded / this.size,
-            data: {
-              loaded: totalLoaded,
-              total: this.size,
-              chunk: partNumber,
-              chunkProgress: progressEvent.loaded / chunkSize,
-            },
-          });
-        },
-        signal: task.controller.signal,
-      });
+      // 使用 https 模块进行流式上传
+      await this.uploadChunkWithHttps(
+        presignedURL,
+        fileStream,
+        chunkSize,
+        partNumber,
+        task.controller.signal
+      );
 
       return { partNumber };
     } catch (error) {
-      if (axios.isCancel(error)) {
+      if (error instanceof Error && error.name === "AbortError") {
         this.chunkTasks[partNumber].status = "abort";
         return;
       }
@@ -502,60 +486,131 @@ export class Uploader {
 
       this.chunkTasks[partNumber].status = "error";
       throw error;
-    } finally {
-      // 确保在任何情况下都释放内存
-      fileData = null;
-      if (global.gc) {
-        global.gc();
-      }
     }
   }
 
   /**
-   * 读取文件分片
+   * 创建文件分片流
    * @param filePath 文件路径
    * @param start 起始位置
    * @param chunkSize 分片大小
-   * @returns 文件分片缓冲区
+   * @returns 文件分片可读流
    */
-  private async readChunk(
+  private createChunkStream(
     filePath: string,
     start: number,
     chunkSize: number
-  ): Promise<Buffer> {
+  ): fs.ReadStream {
+    const endByte = start + chunkSize - 1;
+    return fs.createReadStream(filePath, {
+      start,
+      end: endByte,
+      highWaterMark: 64 * 1024, // 64KB 块大小
+    });
+  }
+
+  /**
+   * 使用 https 模块进行流式上传
+   * @param presignedURL 预签名URL
+   * @param fileStream 文件流
+   * @param chunkSize 分片大小
+   * @param partNumber 分片编号
+   * @param abortSignal 中止信号
+   */
+  private uploadChunkWithHttps(
+    presignedURL: string,
+    fileStream: fs.ReadStream,
+    chunkSize: number,
+    partNumber: number,
+    abortSignal: AbortSignal
+  ): Promise<void> {
     return new Promise((resolve, reject) => {
-      const endByte = start + chunkSize - 1;
+      const url = new URL(presignedURL);
+      let uploaded = 0;
 
-      const readStream = fs.createReadStream(filePath, {
-        start,
-        end: endByte,
-        highWaterMark: Math.min(chunkSize, 64 * 1024), // 64KB 块大小
+      const options: https.RequestOptions = {
+        hostname: url.hostname,
+        port: url.port || 443,
+        path: url.pathname + url.search,
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/octet-stream",
+          "Content-Length": chunkSize.toString(),
+        },
+      };
+
+      const req = https.request(options, res => {
+        let responseData = "";
+
+        res.on("data", chunk => {
+          responseData += chunk;
+        });
+
+        res.on("end", () => {
+          if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
+            resolve();
+          } else {
+            reject(
+              new Error(
+                `Upload failed with status: ${res.statusCode}, response: ${responseData}`
+              )
+            );
+          }
+        });
       });
 
-      const chunks: Buffer[] = [];
-      let totalLength = 0;
-
-      readStream.on("data", (chunk: Buffer) => {
-        chunks.push(chunk);
-        totalLength += chunk.length;
+      req.on("error", error => {
+        reject(new Error(`Upload request failed: ${error.message}`));
       });
 
-      readStream.on("end", () => {
-        try {
-          const result = Buffer.concat(chunks, totalLength);
-          // 立即清理chunks数组，释放内存
-          chunks.length = 0;
-          resolve(result);
-        } catch (error) {
-          chunks.length = 0;
-          reject(error);
-        }
+      // 处理中止信号
+      if (abortSignal.aborted) {
+        const abortError = new Error("Upload aborted");
+        abortError.name = "AbortError";
+        reject(abortError);
+        req.destroy();
+        return;
+      }
+
+      abortSignal.addEventListener("abort", () => {
+        const abortError = new Error("Upload aborted");
+        abortError.name = "AbortError";
+        reject(abortError);
+        req.destroy();
       });
 
-      readStream.on("error", err => {
-        chunks.length = 0;
-        reject(new Error(`读取文件失败: ${err.message}`));
+      // 监听文件流的进度
+      fileStream.on("data", (chunk: Buffer) => {
+        uploaded += chunk.length;
+        this.progress[partNumber] = uploaded;
+
+        const totalLoaded = Object.values(this.progress).reduce(
+          (a, b) => a + b,
+          0
+        );
+
+        this.emitter.emit("progress", {
+          event: "uploading",
+          progress: totalLoaded / this.size,
+          data: {
+            loaded: totalLoaded,
+            total: this.size,
+            chunk: partNumber,
+            chunkProgress: uploaded / chunkSize,
+          },
+        });
       });
+
+      fileStream.on("error", error => {
+        reject(new Error(`File stream error: ${error.message}`));
+      });
+
+      fileStream.on("end", () => {
+        // File stream ended
+      });
+
+      // 将文件流管道连接到请求
+      fileStream.pipe(req);
     });
   }
 
@@ -732,6 +787,7 @@ export class Uploader {
     this.progress = {};
     // 清理队列
     this.queue.clear();
+
     // 触发垃圾回收
     if (global.gc) {
       global.gc();
