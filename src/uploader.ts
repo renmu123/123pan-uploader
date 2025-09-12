@@ -392,7 +392,6 @@ export class Uploader {
 
       const parts: {
         partNumber: number;
-        etag: string;
       }[] = [];
 
       this.queue.on("error", error => {
@@ -402,12 +401,12 @@ export class Uploader {
 
       this.queue.addListener(
         "completed",
-        (result: { partNumber: number; etag: string } | undefined) => {
+        (result: { partNumber: number } | undefined) => {
           if (!result) return;
 
-          const { partNumber, etag } = result;
+          const { partNumber } = result;
           this.chunkTasks[partNumber].status = "completed";
-          parts.push({ partNumber, etag });
+          parts.push({ partNumber });
         }
       );
 
