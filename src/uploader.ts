@@ -502,37 +502,46 @@ export class Uploader {
    * 读取文件分片
    * @param filePath 文件路径
    * @param start 起始位置
-   * @param size 分片大小
+   * @param chunkSize 分片大小
    * @returns 文件分片缓冲区
    */
   private async readChunk(
     filePath: string,
     start: number,
-    size: number
+    chunkSize: number
   ): Promise<Buffer> {
     return new Promise((resolve, reject) => {
-      const buffer = Buffer.alloc(size);
-      fs.open(filePath, "r", (err, fd) => {
-        if (err) {
-          return reject(err);
+      const endByte = start + chunkSize - 1;
+
+      const readStream = fs.createReadStream(filePath, {
+        start,
+        end: endByte,
+        highWaterMark: Math.min(chunkSize, 64 * 1024), // 64KB 块大小
+      });
+
+      const chunks: Buffer[] = [];
+      let totalLength = 0;
+
+      readStream.on("data", (chunk: Buffer) => {
+        chunks.push(chunk);
+        totalLength += chunk.length;
+      });
+
+      readStream.on("end", () => {
+        try {
+          const result = Buffer.concat(chunks, totalLength);
+          // 立即清理chunks数组，释放内存
+          chunks.length = 0;
+          resolve(result);
+        } catch (error) {
+          chunks.length = 0;
+          reject(error);
         }
+      });
 
-        fs.read(fd, buffer, 0, size, start, (err, bytesRead, buffer) => {
-          fs.close(fd, closeErr => {
-            if (closeErr) {
-              console.warn("关闭文件失败:", closeErr);
-            }
-          });
-
-          if (err) {
-            return reject(err);
-          }
-
-          // 如果读取的字节数小于请求的大小，裁剪缓冲区
-          const resultBuffer =
-            bytesRead === size ? buffer : buffer.slice(0, bytesRead);
-          resolve(resultBuffer);
-        });
+      readStream.on("error", err => {
+        chunks.length = 0;
+        reject(new Error(`读取文件失败: ${err.message}`));
       });
     });
   }
