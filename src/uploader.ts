@@ -4,6 +4,7 @@ import https from "node:https";
 import { URL } from "node:url";
 
 import { TypedEmitter } from "tiny-typed-emitter";
+import Throttle from "@renmu/throttle";
 import PQueue from "p-queue";
 import { HttpClient } from "./http.js";
 import { md5File } from "./utils.js";
@@ -90,7 +91,7 @@ export class Uploader {
    * @param concurrency 并发数，默认为3
    * @param retryTimes 重试次数，默认为3
    * @param retryDelay 重试延迟，默认为3000ms
-   * @param limitRate 限速，默认为0
+   * @param limitRate 单个切片限速，默认为0，不限制，单位KB/s
    * @param pollInterval 轮询间隔，默认为2000ms
    * @param pollMaxTimes 最大轮询次数，默认为30次（约1分钟）
    */
@@ -458,7 +459,12 @@ export class Uploader {
       );
 
       // 创建文件流
-      const fileStream = this.createChunkStream(filePath, start, chunkSize);
+      let fileStream = this.createChunkStream(filePath, start, chunkSize);
+      if (this.options.limitRate > 0) {
+        fileStream = fileStream.pipe(
+          new Throttle(this.options.limitRate * 1024)
+        );
+      }
 
       // 使用 https 模块进行流式上传
       await this.uploadChunkWithHttps(

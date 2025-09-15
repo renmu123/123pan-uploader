@@ -1,6 +1,6 @@
 {
   "name": "pan123-uploader",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "123网盘上传工具",
   "main": "dist/index.js",
   "module": "dist/index.js",
@@ -21,6 +21,7 @@
   "author": "renmu123",
   "license": "MIT",
   "dependencies": {
+    "@renmu/throttle": "^1.0.3",
     "p-queue": "^8.1.0",
     "tiny-typed-emitter": "^2.1.0"
   },

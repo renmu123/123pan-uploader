@@ -171,7 +171,7 @@ constructor(
     concurrency?: number;     // 并发上传分片数，默认3
     retryTimes?: number;      // 失败重试次数，默认3
     retryDelay?: number;      // 重试间隔(ms)，默认3000
-    limitRate?: number;       // 限速(B/s)，默认0(不限速)
+    limitRate?: number;       // 单个分片的限速(KB/s)，默认0(不限速)
     duplicate?: number;       // 文件重复处理策略，默认1
     pollInterval?: number;    // 合并状态检查间隔(ms)，默认2000
     pollMaxTimes?: number;    // 最大轮询次数，默认30
