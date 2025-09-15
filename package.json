@@ -13,6 +13,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "release": "pnpm run build && npm publish --access=public"
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "123网盘",
     "uploader",
