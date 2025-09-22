@@ -58,6 +58,8 @@ client.mkdirRecursive("/录播/测试");
 
 ### 基础用法
 
+**注意：最大上传 10g 文件**
+
 ```typescript
 import { Uploader } from "pan123-uploader";
 
